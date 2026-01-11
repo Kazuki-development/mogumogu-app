@@ -151,7 +151,11 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
                         ),
                         title: TextField(
                           controller: TextEditingController(text: item.name),
-                          decoration: const InputDecoration(border: InputBorder.none),
+                          maxLength: 50, // Limit input length
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            counterText: "", // Hide counter
+                          ),
                           onChanged: (val) {
                             _candidates[index] = item.copyWith(name: val);
                           },

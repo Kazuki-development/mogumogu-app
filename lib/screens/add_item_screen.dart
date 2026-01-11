@@ -172,11 +172,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameController,
+                maxLength: 50, // Limit input
                 decoration: InputDecoration(
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.grey[50],
                   hintText: '例: 牛乳',
+                  counterText: "", // Hide counter
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return '入力してください';

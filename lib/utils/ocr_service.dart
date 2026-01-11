@@ -20,22 +20,47 @@ class OCRService {
   List<String> _parseReceiptText(RecognizedText recognizedText) {
     List<String> candidates = [];
     
-    // Split by lines and filter
-    for (TextBlock block in recognizedText.blocks) {
+    // Sort blocks by vertical position to somewhat respect reading order
+    List<TextBlock> sortedBlocks = List.from(recognizedText.blocks)
+      ..sort((a, b) => a.boundingBox.top.compareTo(b.boundingBox.top));
+
+    for (TextBlock block in sortedBlocks) {
       for (TextLine line in block.lines) {
         String text = line.text.trim();
         
-        // Filter out obvious noise (prices, phone numbers, short text)
-        // This logic needs to be refined heavily based on real receipts
-        if (text.length < 2) continue;
-        if (RegExp(r'^[0-9¥￥,\.\s]+$').hasMatch(text)) continue; // Only numbers/prices
-        if (text.contains('合計') || text.contains('お釣り') || text.contains('レシート')) continue;
-        if (text.contains('TEL') || text.contains('電話')) continue;
+        if (_isIgnoredLine(text)) continue;
+
+        // Basic normalization
+        text = text.replaceAll(RegExp(r'[\d,¥￥\.]+'), '').trim(); // Remove prices embedded in line
+        // Remove leading/trailing symbols
+        text = text.replaceAll(RegExp(r'^[\(\)\[\]\-\.\s\*]+'), '').replaceAll(RegExp(r'[\(\)\[\]\-\.\s\*]+$'), '');
+        
+        if (text.length < 2) continue; // Too short after cleaning
 
         candidates.add(text);
       }
     }
     return candidates;
+  }
+
+  bool _isIgnoredLine(String text) {
+    // 1. Phone / Address / Header
+    if (RegExp(r'(TEL|FAX|電話|住所|〒|No\.|店|レジ|担当|様|領収|明細|クレジット|カード)').hasMatch(text)) return true;
+    
+    // 2. Date / Time
+    if (RegExp(r'(20\d{2}年|\d{1,2}月\d{1,2}日|\d{1,2}:\d{1,2})').hasMatch(text)) return true;
+    
+    // 3. Totals / Accounting
+    if (RegExp(r'(合計|小計|釣|預|現計|税|対象|値引|割引|内消|商品)').hasMatch(text)) return true; // Added '内消', '商品' (often part of header)
+
+    // 4. Price only lines (heuristic)
+    if (RegExp(r'^[\d,¥￥\.\s]+$').hasMatch(text)) return true;
+    if (RegExp(r'^[¥￥]?\s*[\d,]+\s*$').hasMatch(text)) return true;
+
+    // 5. Short/Symbol only
+    if (RegExp(r'^[\(\)\[\]\-\.\s\*]+$').hasMatch(text)) return true;
+    
+    return false;
   }
 
   void dispose() {

@@ -104,6 +104,41 @@ class FoodListViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> addItems(List<FoodItem> items) async {
+    bool somethingAdded = false;
+    try {
+      // Calculate start index for manual sort
+      int currentMaxOrder = 0;
+      if (_sortType == SortType.manual && _items.isNotEmpty) {
+        currentMaxOrder = _items.map((e) => e.orderIndex ?? 0).reduce((a, b) => a > b ? a : b);
+      }
+
+      for (var item in items) {
+        int? newOrderIndex;
+        if (_sortType == SortType.manual) {
+          currentMaxOrder++;
+          newOrderIndex = currentMaxOrder;
+        }
+
+        final newItem = await DatabaseHelper.instance.create(
+          item.copyWith(orderIndex: newOrderIndex)
+        );
+        _items.add(newItem);
+        await NotificationHelper().scheduleExpiryNotification(newItem);
+        somethingAdded = true;
+      }
+      
+      if (somethingAdded) {
+        if (_sortType != SortType.manual) {
+          _applySort();
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error adding items batch: $e');
+    }
+  }
+
   Future<void> updateItemIcon(FoodItem item, String newIcon) async {
     try {
       final updatedItem = item.copyWith(customIcon: newIcon);

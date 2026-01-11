@@ -21,6 +21,20 @@ class FoodIconDetector {
     if (_matches(lowerName, [r'cheese', r'ti-zu', r'chi-zu', r'チーズ'])) {
       return '🧀';
     }
+    if (_matches(lowerName, [r'yogurt', r'yoguruto', r'ヨーグルト'])) {
+        return '🥣';
+    }
+
+    // --- Soy / Tofu ---
+    if (_matches(lowerName, [r'natto', r'納豆', r'なっとう'])) {
+      return '🫘';
+    }
+    if (_matches(lowerName, [r'tofu', r'doufu', r'豆腐', r'とうふ', r'厚揚げ', r'油揚げ'])) {
+      return '🧊'; // Cube representation for Tofu
+    }
+    if (_matches(lowerName, [r'miso', r'味噌', r'みそ'])) {
+      return '🍲';
+    }
 
     // --- Vegetables ---
     // Leafy Greens
@@ -54,6 +68,34 @@ class FoodIconDetector {
     // Eggplant
     if (_matches(lowerName, [r'eggplant', r'nasu', r'nasubi', r'茄子', r'ナス', r'なす'])) {
       return '🍆';
+    }
+    // Cucumber
+    if (_matches(lowerName, [r'cucumber', r'kyuri', r'きゅうり', r'キュウリ', r'胡瓜'])) {
+        return '🥒';
+    }
+    // Mushrooms
+    if (_matches(lowerName, [r'mushroom', r'kinoko', r'shimeji', r'enoki', r'maitake', r'shiitake', r'きのこ', r'キノコ', r'しめじ', r'えのき', r'舞茸', r'椎茸', r'エリンギ', r'マッシュルーム'])) {
+        return '🍄';
+    }
+    // Bell Pepper
+    if (_matches(lowerName, [r'pepper', r'piman', r'ピーマン', r'パプリカ'])) {
+        return '🫑';
+    }
+    // Pumpkin
+    if (_matches(lowerName, [r'pumpkin', r'kabocha', r'かぼちゃ', r'カボチャ', r'南瓜'])) {
+        return '🎃';
+    }
+    // Radish
+    if (_matches(lowerName, [r'radish', r'daikon', r'大根', r'ダイコン', r'だいこん'])) {
+        return '🥢'; // Chopsticks often associated, or just stick to generic veg if preferred. Using chopsticks for "Japanese food" vibe or find better. Let's use 🥢 as placeholder or just 🥬 generic. Actually white radish looks like... maybe just use generic veg 🥬 if no good icon. Let's use 🥢 for now as distinct.
+        // Actually 🥢 is chopsticks. Maybe 🥕 is better? No. Let's use 🥬 for Daikon for now or 🏳️ (white flag? no).
+        // Let's stick to 🥬 for Daikon in default fallbacks, but if I want specific... 
+        // Unicode has no Radish. 
+        // I'll skip Daikon specific icon and let it fall to 🥬 via category or add pattern for 🥬
+    }
+    // Bean Sprouts
+    if (_matches(lowerName, [r'moyashi', r'もやし', r'モヤシ'])) {
+        return '🌱';
     }
 
     // --- Fruits ---
@@ -131,6 +173,32 @@ class FoodIconDetector {
     if (_matches(lowerName, [r'tea', r'ocha', r'茶', r'ティー'])) {
       return '🍵';
     }
+    if (_matches(lowerName, [r'water', r'mizu', r'水', r'ミネラルウォーター'])) {
+        return '💧';
+    }
+    if (_matches(lowerName, [r'juice', r'ジュース', r'drink', r'ドリンク'])) {
+        return '🧃';
+    }
+
+    // --- Seasonings ---
+    if (_matches(lowerName, [r'mayonnaise', r'mayo', r'マヨネーズ', r'マヨ'])) {
+        return '🥣';
+    }
+    if (_matches(lowerName, [r'ketchup', r'ケチャップ'])) {
+        return '🍅';
+    }
+    if (_matches(lowerName, [r'soy south', r'shoyu', r'醤油', r'しょうゆ', r'ポン酢'])) {
+        return '🍶';
+    }
+    if (_matches(lowerName, [r'oil', r'abura', r'油', r'オイル', r'サラダ油', r'オリーブオイル'])) {
+        return '🛢️';
+    }
+    if (_matches(lowerName, [r'salt', r'shio', r'塩', r'ソルト'])) {
+        return '🧂';
+    }
+    if (_matches(lowerName, [r'sugar', r'sato', r'砂糖', r'シュガー'])) {
+        return '🧂'; // Reuse salt shaker style
+    }
 
     // If no specific match, fall back to category default
     switch (category) {
@@ -151,15 +219,17 @@ class FoodIconDetector {
   }
 
   static const Map<String, List<String>> categorizedIcons = {
-     '🥬 野菜': ['🥦', '🥬', '🍅', '🍆', '🌽', '🥕', '🥔', '🧅', '🫑', '🥒', '🧄', '🥜'],
+     '🥬 野菜・きのこ': ['🥦', '🥬', '🍅', '🍆', '🌽', '🥕', '🥔', '🧅', '🫑', '🥒', '🧄', '🥜', '🍄', '🎃', '🌱'],
      '🍎 フルーツ': ['🍎', '🍌', '🍇', '🍓', '🍊', '🍋', '🍑', '🍒', '🍍', '🥝', '🍈', '🫐'],
      '🥩 肉': ['🥩', '🍗', '🍖', '🥓', '🌭', '🍔', '🐔', '🐖', '🐄'],
      '🐟 魚介': ['🐟', '🐠', '🦈', '🦀', '🦞', '🦐', '🦑', '🐙', '🍣', '🦪', '🍤'],
+     '🫘 大豆・加工品': ['🫘', '🧊', '🍲', '🥓', '🌭', '🍥', '🍢'],
      '🍞 パン・穀物': ['🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🍚', '🍙', '🍘', '🍛', '🍜', '🍝'],
-     '🥛 乳製品・卵': ['🥛', '🧀', '🥚', '🍦', '🧈', '🍳'],
+     '🥛 乳製品・卵': ['🥛', '🧀', '🥚', '🍦', '🧈', '🍳', '🥣'],
+     '🧂 調味料': ['🧂', '🫙', '🍶', '🥣', '🛢️', '🏺'],
      '🍰 お菓子・デザート': ['🍫', '🍿', '🍩', '🍪', '🎂', '🍰', '🧁', '🍮', '🍡', '🍬', '🍭'],
-     '🍵 飲み物': ['☕', '🍵', '🧃', '🍺', '🍷', '🧋', '🥤'],
-     '📦 その他': ['🧊', '🥫', '📦', '🍳', '🥡', '🍱'],
+     '🍵 飲み物': ['☕', '🍵', '🧃', '🍺', '🍷', '🧋', '🥤', '💧'],
+     '📦 その他': ['🧊', '🥫', '📦', '🍳', '🥡', '🍱', '🧴', '🧻'],
   };
 
   // Flatten for backward compatibility if needed

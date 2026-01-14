@@ -15,8 +15,7 @@ class NotificationHelper {
 
   Future<void> init() async {
     tz.initializeTimeZones();
-    // Use the default local location or set it to a specific one if needed
-    // tz.setLocalLocation(tz.getLocation('Asia/Tokyo')); 
+    tz.setLocalLocation(tz.getLocation('Asia/Tokyo')); 
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -33,6 +32,25 @@ class NotificationHelper {
         // Handle notification tap
       },
     );
+
+    // CRITICAL FIX: Create notification channel for Android 8.0+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'expiry_channel', // id (must match the one used in scheduleExpiryNotification)
+      'Expiration Alerts', // name
+      description: 'Notifications for expiring food',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    // Request notification permissions (Android 13+)
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
   }
 
   Future<void> scheduleExpiryNotification(FoodItem item) async {

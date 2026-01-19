@@ -26,6 +26,8 @@ class FoodListViewModel extends ChangeNotifier {
     try {
       _items = await DatabaseHelper.instance.readAllFoodItems();
       _applySort();
+      // Reschedule all notifications on startup to ensure they are registered with the correct channel
+      await NotificationHelper().rescheduleAllNotifications(_items);
     } catch (e) {
       debugPrint('Error loading items: $e');
     } finally {

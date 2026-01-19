@@ -60,10 +60,15 @@ class NotificationHelper {
         scheduledDate.year,
         scheduledDate.month,
         scheduledDate.day,
-        11, // 11 AM
+        11, // 11 AM default
         0,
       );
 
+      // If scheduled time is in the past, don't schedule
+      // However, if it's TODAY and hasn't passed 11 AM yet? Or if it's TODAY and passed?
+      // For improved reliability:
+      // If the scheduled time is in the past, checking if it is still "Today" might be relevant for some use cases,
+      // but generally we skip past events. 
       if (scheduledTime.isBefore(DateTime.now())) {
         continue;
       }
@@ -78,27 +83,41 @@ class NotificationHelper {
         body = '${item.name} の賞味期限まであと $daysBefore 日です！';
       }
 
-      // Unique ID for each notification setting: itemId * 1000 + daysBefore
-      // Max items assumption: 2M. 2M * 1000 = 2B (within int32 range)
-      // Note: daysBefore should ideally be small < 1000.
       final notificationId = (item.id ?? 0) * 1000 + daysBefore;
 
-      await flutterLocalNotificationsPlugin.zonedSchedule(
-        notificationId,
-        title,
-        body,
-        tz.TZDateTime.from(scheduledTime, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'expiry_channel',
-            'Expiration Alerts',
-            channelDescription: 'Notifications for expiring food',
-            importance: Importance.max,
-            priority: Priority.high,
+      try {
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          notificationId,
+          title,
+          body,
+          tz.TZDateTime.from(scheduledTime, tz.local),
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'expiry_channel',
+              'Expiration Alerts',
+              channelDescription: 'Notifications for expiring food',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
           ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      );
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime, 
+          // matchDateTimeComponents: DateTimeComponents.time, // REMOVED: We want one-time notification, not recurring
+        );
+      } catch (e) {
+        // e.g. Exact alarms permission not granted
+        print('Error scheduling notification: $e');
+      }
+    }
+  }
+
+  Future<void> rescheduleAllNotifications(List<FoodItem> items) async {
+    // Cancel all existing to be safe and avoid duplicates/stale data
+    await flutterLocalNotificationsPlugin.cancelAll();
+    
+    for (final item in items) {
+      await scheduleExpiryNotification(item);
     }
   }
   

@@ -101,9 +101,8 @@ class NotificationHelper {
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime, 
-          // matchDateTimeComponents: DateTimeComponents.time, // REMOVED: We want one-time notification, not recurring
+          // uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // REMOVED due to build error (param not found)
+          // matchDateTimeComponents: DateTimeComponents.time, 
         );
       } catch (e) {
         // e.g. Exact alarms permission not granted

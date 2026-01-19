@@ -8,6 +8,9 @@ class FoodItemTile extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onIconTap;
   final int index;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelected;
   final bool showDragHandle;
 
   const FoodItemTile({
@@ -17,6 +20,9 @@ class FoodItemTile extends StatelessWidget {
     required this.onIconTap,
     required this.index,
     this.showDragHandle = false,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelected,
   });
 
   Color _getStatusColor(DateTime expiry) {
@@ -53,90 +59,111 @@ class FoodItemTile extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            // Drag handle (only shown in manual mode)
-            if (showDragHandle)
-              ReorderableDragStartListener(
-                index: index,
-                child: Padding(
+      child: InkWell(
+        onTap: isSelectionMode ? () => onSelected?.call(!isSelected) : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              // Checkbox for selection mode
+              if (isSelectionMode)
+                Padding(
                   padding: const EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.drag_handle, color: Colors.grey[400]),
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: onSelected,
+                    activeColor: Colors.orange,
+                  ),
                 ),
-              ),
-            InkWell(
-              onTap: onIconTap,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+
+              // Drag handle (only shown in manual mode AND NOT selection mode)
+              if (showDragHandle && !isSelectionMode)
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.drag_handle, color: Colors.grey[400]),
+                  ),
                 ),
-                child: Center(
-                  child: Text(
-                    displayIcon,
-                    style: const TextStyle(fontSize: 30),
+              
+              // Icon Container
+              InkWell(
+                onTap: isSelectionMode 
+                    ? () => onSelected?.call(!isSelected) 
+                    : onIconTap, // Disable icon tap in selection mode (toggle select instead)
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      displayIcon,
+                      style: const TextStyle(fontSize: 30),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          '期限: ${dateFormat.format(item.expiryDate)}',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Column(
                 children: [
-                  Text(
-                    item.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _getDaysLeftText(item.expiryDate),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        '期限: ${dateFormat.format(item.expiryDate)}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
+                  // Hide delete button in selection mode (use batch delete instead)
+                  if (!isSelectionMode)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+                      onPressed: onDelete,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                 ],
               ),
-            ),
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _getDaysLeftText(item.expiryDate),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
-                  onPressed: onDelete,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

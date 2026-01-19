@@ -7,11 +7,65 @@ import '../widgets/food_item_tile.dart';
 import '../utils/food_icon_detector.dart'; // Import for preset icons
 import 'add_item_screen.dart';
 import 'scan_receipt_screen.dart';
+import 'settings_screen.dart';
 
 import '../widgets/ad_banner.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isSelectionMode = false;
+  final Set<int> _selectedIds = {};
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelection(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedItems(FoodListViewModel viewModel) async {
+    final count = _selectedIds.length;
+    if (count == 0) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('一括削除'),
+        content: Text('$count 件の食材を削除しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('削除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await viewModel.deleteItems(_selectedIds.toList());
+      _toggleSelectionMode(); // Exit selection mode
+    }
+  }
 
   void _showIconSelectionDialog(BuildContext context, FoodItem item, FoodListViewModel viewModel) {
     showDialog(
@@ -95,70 +149,100 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Text(
-              'もぐもぐ',
-              style: TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-            Text('MoguMogu', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-          ],
-        ),
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _toggleSelectionMode,
+              )
+            : IconButton(
+                icon: const Icon(Icons.settings, color: Colors.grey),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+              ),
+        title: _isSelectionMode
+            ? Text('${_selectedIds.length} 件選択中', style: const TextStyle(fontSize: 16))
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'もぐもぐ',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  Text('MoguMogu', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                ],
+              ),
         backgroundColor: Colors.white,
         scrolledUnderElevation: 0,
         centerTitle: true,
         actions: [
-          // Sorting Menu
-          Consumer<FoodListViewModel>(
-            builder: (context, viewModel, child) => PopupMenuButton<SortType>(
-              icon: const Icon(Icons.sort, color: Color(0xFFFF9800)),
-              onSelected: (SortType result) {
-                viewModel.sortItems(result);
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<SortType>>[
-                PopupMenuItem<SortType>(
-                  value: SortType.expiryAsc,
-                  child: Row(
-                    children: [
-                      if (viewModel.sortType == SortType.expiryAsc) const Icon(Icons.check, size: 16, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      const Text('期限が近い順'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<SortType>(
-                  value: SortType.expiryDesc,
-                  child: Row(
-                    children: [
-                       if (viewModel.sortType == SortType.expiryDesc) const Icon(Icons.check, size: 16, color: Colors.orange),
-                       const SizedBox(width: 8),
-                       const Text('期限が遠い順'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<SortType>(
-                  value: SortType.manual,
-                   child: Row(
-                    children: [
-                       if (viewModel.sortType == SortType.manual) const Icon(Icons.check, size: 16, color: Colors.orange),
-                       const SizedBox(width: 8),
-                       const Text('カスタム順'),
-                    ],
-                  ),
-                ),
-              ],
+          if (_isSelectionMode)
+            Consumer<FoodListViewModel>(
+              builder: (context, viewModel, child) => IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: _selectedIds.isEmpty ? null : () => _deleteSelectedItems(viewModel),
+              ),
+            )
+          else ...[
+            // Select Mode Button
+            TextButton(
+              onPressed: _toggleSelectionMode,
+              child: const Text('選択', style: TextStyle(color: Color(0xFFFF9800))),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFFFF9800)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AddItemScreen()),
-              );
-            },
-          ),
+            // Sorting Menu
+            Consumer<FoodListViewModel>(
+              builder: (context, viewModel, child) => PopupMenuButton<SortType>(
+                icon: const Icon(Icons.sort, color: Color(0xFFFF9800)),
+                onSelected: (SortType result) {
+                  viewModel.sortItems(result);
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<SortType>>[
+                  PopupMenuItem<SortType>(
+                    value: SortType.expiryAsc,
+                    child: Row(
+                      children: [
+                        if (viewModel.sortType == SortType.expiryAsc) const Icon(Icons.check, size: 16, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        const Text('期限が近い順'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<SortType>(
+                    value: SortType.expiryDesc,
+                    child: Row(
+                      children: [
+                        if (viewModel.sortType == SortType.expiryDesc) const Icon(Icons.check, size: 16, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        const Text('期限が遠い順'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<SortType>(
+                    value: SortType.manual,
+                    child: Row(
+                      children: [
+                        if (viewModel.sortType == SortType.manual) const Icon(Icons.check, size: 16, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        const Text('カスタム順'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: Color(0xFFFF9800)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AddItemScreen()),
+                );
+              },
+            ),
+          ],
         ],
       ),
       backgroundColor: Colors.white,
@@ -173,18 +257,18 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                   Container(
-                     padding: const EdgeInsets.all(32),
-                     decoration: BoxDecoration(
-                       color: Colors.orange[50],
-                       shape: BoxShape.circle,
-                     ),
-                     child: const Icon(
-                       Icons.kitchen,
-                       size: 80,
-                       color: Color(0xFFFF9800),
-                     ),
-                   ),
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.kitchen,
+                      size: 80,
+                      color: Color(0xFFFF9800),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   Text(
                     '冷蔵庫は空っぽです',
@@ -208,17 +292,27 @@ class HomeScreen extends StatelessWidget {
           return ReorderableListView.builder(
             padding: const EdgeInsets.only(top: 16, bottom: 80),
             onReorder: (int oldIndex, int newIndex) {
-              viewModel.reorderItems(oldIndex, newIndex);
+              // Disable reorder in selection mode
+              if (!_isSelectionMode) {
+                viewModel.reorderItems(oldIndex, newIndex);
+              }
             },
             buildDefaultDragHandles: false, // We provide custom drag handles
             itemCount: viewModel.items.length,
             itemBuilder: (context, index) {
               final item = viewModel.items[index];
+              final isSelected = _selectedIds.contains(item.id);
+              
               return FoodItemTile(
                 key: ValueKey(item.id),
                 item: item,
                 index: index,
-                showDragHandle: viewModel.sortType == SortType.manual,
+                showDragHandle: viewModel.sortType == SortType.manual && !_isSelectionMode,
+                isSelectionMode: _isSelectionMode,
+                isSelected: isSelected,
+                onSelected: (bool? value) {
+                  _toggleSelection(item.id!);
+                },
                 onDelete: () {
                   showDialog(
                     context: context,
@@ -252,21 +346,23 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: const SafeArea(
         child: AdBanner(),
       ),
-      floatingActionButton: SizedBox(
-        height: 70,
-        width: 70,
-        child: FloatingActionButton(
-          heroTag: 'scan',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ScanReceiptScreen()),
-            );
-          },
-          backgroundColor: const Color(0xFFFF9800),
-          child: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
-        ),
-      ),
+      floatingActionButton: _isSelectionMode
+          ? null // Hide FAB in selection mode
+          : SizedBox(
+              height: 70,
+              width: 70,
+              child: FloatingActionButton(
+                heroTag: 'scan',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ScanReceiptScreen()),
+                  );
+                },
+                backgroundColor: const Color(0xFFFF9800),
+                child: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
+              ),
+            ),
     );
   }
 }

@@ -1,5 +1,6 @@
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/food_item.dart';
 import '../data/database_helper.dart';
 import '../utils/notification_helper.dart';
@@ -14,17 +15,27 @@ class FoodListViewModel extends ChangeNotifier {
   List<FoodItem> _items = [];
   bool _isLoading = false;
   SortType _sortType = SortType.expiryAsc;
+  bool _autoDeleteEnabled = false;
 
   List<FoodItem> get items => _items;
   bool get isLoading => _isLoading;
   SortType get sortType => _sortType;
+  bool get autoDeleteEnabled => _autoDeleteEnabled;
 
   Future<void> loadItems() async {
     _isLoading = true;
     notifyListeners();
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      _autoDeleteEnabled = prefs.getBool('auto_delete_expired') ?? false;
+
       _items = await DatabaseHelper.instance.readAllFoodItems();
+      
+      if (_autoDeleteEnabled) {
+        await _deleteExpiredItemsInternal();
+      }
+
       _applySort();
       // Reschedule all notifications on startup to ensure they are registered with the correct channel
       await NotificationHelper().rescheduleAllNotifications(_items);
@@ -33,6 +44,32 @@ class FoodListViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> setAutoDeleteEnabled(bool value) async {
+    _autoDeleteEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_delete_expired', value);
+    notifyListeners();
+
+    if (value) {
+      await _deleteExpiredItemsInternal();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _deleteExpiredItemsInternal() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    final expiredIds = _items.where((item) {
+      final expiryDay = DateTime(item.expiryDate.year, item.expiryDate.month, item.expiryDate.day);
+      return expiryDay.isBefore(today); // < today means yesterday or older
+    }).map((e) => e.id!).toList();
+
+    if (expiredIds.isNotEmpty) {
+      await deleteItems(expiredIds);
     }
   }
 
@@ -168,6 +205,25 @@ class FoodListViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error deleting item: $e');
+    }
+  }
+
+  Future<void> deleteItems(List<int> ids) async {
+    try {
+      for (final id in ids) {
+         // Optimization: Could use batch delete in DB logic if needed, but loop is fine for local SQLite
+         await DatabaseHelper.instance.delete(id);
+         
+         // Find item to cancel notification
+          try {
+            final item = _items.firstWhere((e) => e.id == id);
+            await NotificationHelper().cancelConfigurations(id, item.notificationSettings);
+          } catch (_) {} // Item might not persist in list if race condition, safe to ignore
+      }
+      _items.removeWhere((item) => ids.contains(item.id));
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting items batch: $e');
     }
   }
 }

@@ -157,7 +157,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, -5),
                       ),
@@ -196,7 +196,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _selected[index] ? Colors.orange.withOpacity(0.3) : Colors.transparent),
+        side: BorderSide(color: _selected[index] ? Colors.orange.withValues(alpha: 0.3) : Colors.transparent),
       ),
       color: Colors.white,
       child: Column(
@@ -284,7 +284,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
                           }
                         },
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.orange.withOpacity(0.3)),
+                          side: BorderSide(color: Colors.orange.withValues(alpha: 0.3)),
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                         ),
                       ),

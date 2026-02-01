@@ -1,4 +1,4 @@
-
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -106,7 +106,7 @@ class NotificationHelper {
         );
       } catch (e) {
         // e.g. Exact alarms permission not granted
-        print('Error scheduling notification: $e');
+        debugPrint('Error scheduling notification: $e');
       }
     }
   }

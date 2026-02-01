@@ -44,23 +44,39 @@ class OCRService {
   }
 
   bool _isIgnoredLine(String text) {
-    // 1. Phone / Address / Header
-    if (RegExp(r'(TEL|FAX|電話|住所|〒|No\.|店|レジ|担当|様|領収|明細|クレジット|カード)').hasMatch(text)) return true;
+    // 1. Phone / Address / Header / Store Names
+    if (RegExp(r'(TEL|FAX|電話|住所|〒|No\.|店|レジ|担当|様|領収|明細|クレジット|カード|銀行|振込)').hasMatch(text)) return true;
+    if (RegExp(r'(イオン|マックスバリュ|セブン|ローソン|ファミマ|ダイソー|イトーヨーカドー)').hasMatch(text)) return true;
     
-    // 2. Date / Time
+    // 2. Date / Time / Numbers / IDs
     if (RegExp(r'(20\d{2}年|\d{1,2}月\d{1,2}日|\d{1,2}:\d{1,2})').hasMatch(text)) return true;
-    
-    // 3. Totals / Accounting
-    if (RegExp(r'(合計|小計|釣|預|現計|税|対象|値引|割引|内消|商品)').hasMatch(text)) return true; // Added '内消', '商品' (often part of header)
+    if (RegExp(r'(登録番号|Ｔ|T\d{10,13})').hasMatch(text)) return true; // Tax IDs
+    if (RegExp(r'^[\d]{8,}$').hasMatch(text)) return true; // Longer sequences of digits (serial numbers etc)
 
-    // 4. Price only lines (heuristic)
-    if (RegExp(r'^[\d,¥￥\.\s]+$').hasMatch(text)) return true;
-    if (RegExp(r'^[¥￥]?\s*[\d,]+\s*$').hasMatch(text)) return true;
+    // 3. Totals / Accounting / Payment details
+    if (RegExp(r'(合計|小計|釣|預|現計|税|対象|値引|割引|内消|商品|点数|券|ポイント|残高|支払|充当)').hasMatch(text)) return true;
 
-    // 5. Short/Symbol only
-    if (RegExp(r'^[\(\)\[\]\-\.\s\*]+$').hasMatch(text)) return true;
+    // 4. URL / Web / Email
+    if (_isUrlLike(text)) return true;
+
+    // 5. Price only lines (heuristic)
+    if (RegExp(r'^[\d,¥￥\.\s\*]+$').hasMatch(text)) return true;
+    if (RegExp(r'^[¥￥\*]?\s*[\d,]+\s*$').hasMatch(text)) return true;
+
+    // 6. Short/Symbol only / Specific symbols found in user image
+    if (RegExp(r'^[\(\)\[\]\-\.\s\*\/]+$').hasMatch(text)) return true;
+    if (text.startsWith('/') || text.startsWith('(')) {
+      if (text.length < 5) return true; // Very short lines starting with noise symbols
+    }
+
+    // 7. Promotions / Campaign (found in image "お客さま感謝デー")
+    if (RegExp(r'(感謝デー|キャンペーン|クーポン|広告|アンケート|お問い合わせ)').hasMatch(text)) return true;
     
     return false;
+  }
+
+  bool _isUrlLike(String text) {
+    return RegExp(r'(http|https|www|\.jp|\.com|¥.co¥.jp)').hasMatch(text.toLowerCase());
   }
 
   void dispose() {

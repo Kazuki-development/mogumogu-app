@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../models/food_item.dart';
 import '../utils/food_icon_detector.dart';
 import '../viewmodels/food_list_view_model.dart';
@@ -125,69 +126,207 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
           ),
         ],
       ),
+      backgroundColor: Colors.grey[100],
       body: _candidates.isEmpty
           ? const Center(child: Text('読み取れる商品がありませんでした'))
           : Column(
               children: [
-                Padding(
+                Container(
                   padding: const EdgeInsets.all(16.0),
+                  color: Colors.white,
+                  width: double.infinity,
                   child: Text(
-                    '${_candidates.length}件検出しました。\n不要なものはチェックを外してください。',
+                    '${_candidates.length}件を自動抽出しました。\n登録する食材を確認・編集してください。',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
                   ),
                 ),
+                const SizedBox(height: 8),
                 Expanded(
-                  child: ListView.separated(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 20),
                     itemCount: _candidates.length,
-                    separatorBuilder: (ctx, i) => const Divider(height: 1),
                     itemBuilder: (context, index) {
-                      final item = _candidates[index];
-                      return CheckboxListTile(
-                        value: _selected[index],
-                        secondary: Text(
-                          item.customIcon ?? '📦',
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                        title: TextField(
-                          controller: TextEditingController(text: item.name),
-                          maxLength: 50, // Limit input length
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            counterText: "", // Hide counter
-                          ),
-                          onChanged: (val) {
-                            _candidates[index] = item.copyWith(name: val);
-                          },
-                        ),
-                        subtitle: Text(_getCategoryName(item.category)),
-                        onChanged: (bool? value) {
-                          setState(() {
-                            _selected[index] = value ?? false;
-                          });
-                        },
-                      );
+                      return _buildEditTile(index);
                     },
                   ),
                 ),
-                Padding(
+                Container(
                   padding: const EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: _isSaving 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save_alt),
-                      label: Text(_isSaving ? '保存中...' : 'チェックした商品を登録'),
-                      onPressed: _isSaving ? null : _saveSelectedItems,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: _isSaving 
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.save_alt),
+                        label: Text(_isSaving ? '保存中...' : 'チェックした商品を登録'),
+                        onPressed: _isSaving ? null : _saveSelectedItems,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF9800),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildEditTile(int index) {
+    final item = _candidates[index];
+    final dateFormat = DateFormat('yyyy/MM/dd');
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: _selected[index] ? Colors.orange.withOpacity(0.3) : Colors.transparent),
+      ),
+      color: Colors.white,
+      child: Column(
+        children: [
+          CheckboxListTile(
+            value: _selected[index],
+            activeColor: const Color(0xFFFF9800),
+            secondary: Text(
+              item.customIcon ?? '📦',
+              style: const TextStyle(fontSize: 28),
+            ),
+            title: TextField(
+              controller: TextEditingController(text: item.name)..selection = TextSelection.fromPosition(TextPosition(offset: item.name.length)),
+              maxLength: 50,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                counterText: "",
+                hintText: "商品名を入力",
+              ),
+              onChanged: (val) {
+                _candidates[index] = item.copyWith(name: val);
+              },
+            ),
+            onChanged: (bool? value) {
+              setState(() {
+                _selected[index] = value ?? false;
+              });
+            },
+          ),
+          if (_selected[index]) Padding(
+            padding: const EdgeInsets.only(left: 72, right: 16, bottom: 12),
+            child: Column(
+              children: [
+                const Divider(),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<FoodCategory>(
+                          value: item.category,
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          onChanged: (FoodCategory? newCategory) {
+                            if (newCategory != null) {
+                              setState(() {
+                                int days = _getDefaultExpiryDays(newCategory);
+                                _candidates[index] = item.copyWith(
+                                  category: newCategory,
+                                  expiryDate: DateTime.now().add(Duration(days: days)),
+                                );
+                              });
+                            }
+                          },
+                          items: FoodCategory.values.map((c) {
+                            return DropdownMenuItem(
+                              value: c,
+                              child: Text(_getCategoryName(c), style: const TextStyle(fontSize: 13)),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.calendar_month, size: 16, color: Colors.orange),
+                        label: Text(
+                          dateFormat.format(item.expiryDate),
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: item.expiryDate,
+                            firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                            lastDate: DateTime.now().add(const Duration(days: 1000)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _candidates[index] = item.copyWith(expiryDate: picked);
+                            });
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.orange.withOpacity(0.3)),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildQuickDateChip(index, "3日", 3),
+                      _buildQuickDateChip(index, "1週間", 7),
+                      _buildQuickDateChip(index, "2週間", 14),
+                      _buildQuickDateChip(index, "1ヶ月", 30),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickDateChip(int index, String label, int days) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(label, style: const TextStyle(fontSize: 11)),
+        selected: false,
+        onSelected: (_) {
+          setState(() {
+            _candidates[index] = _candidates[index].copyWith(
+              expiryDate: DateTime.now().add(Duration(days: days)),
+            );
+          });
+        },
+        visualDensity: VisualDensity.compact,
+        backgroundColor: Colors.grey[100],
+      ),
     );
   }
 

@@ -2,10 +2,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../viewmodels/food_list_view_model.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  String _version = '...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = '${packageInfo.version}+${packageInfo.buildNumber}';
+    });
+  }
 
   Future<void> _launchUrl(String url) async {
     final Uri uri = Uri.parse(url);
@@ -22,7 +43,7 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
       ),
-      backgroundColor: Colors.grey[50], // Very light grey background
+      backgroundColor: Colors.grey[50],
       body: Consumer<FoodListViewModel>(
         builder: (context, viewModel, child) {
           return ListView(
@@ -47,9 +68,6 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: 'OSの設定画面を開きます',
                 icon: Icons.notifications_active,
                 onTap: () {
-                  // Usually linking to OS settings is platform specific or requires a plugin like app_settings
-                  // For now, we can't easily open specific app settings without plugin 'app_settings'
-                  // So we might skip this action or show a dialog.
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('OSの設定アプリから通知を許可してください')));
                 },
@@ -61,13 +79,12 @@ class SettingsScreen extends StatelessWidget {
                 title: 'プライバシーポリシー',
                 icon: Icons.privacy_tip,
                 onTap: () {
-                  // Placeholder URL
-                  _launchUrl('https://example.com/privacy'); 
+                  _launchUrl('https://note.com/e_ai/n/nd0baeb7e560b'); 
                 },
               ),
               _buildTile(
                 title: 'バージョン',
-                subtitle: '1.0.0+4', // Ideally dynamic
+                subtitle: _version,
                 icon: Icons.info,
                 onTap: null,
               ),
@@ -131,7 +148,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFFFF9800),
+        activeTrackColor: const Color(0xFFFF9800),
       ),
     );
   }

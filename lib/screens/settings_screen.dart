@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:app_settings/app_settings.dart';
 import '../viewmodels/food_list_view_model.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -68,8 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: 'OSの設定画面を開きます',
                 icon: Icons.notifications_active,
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('OSの設定アプリから通知を許可してください')));
+                  AppSettings.openAppSettings(type: AppSettingsType.notification);
                 },
               ),
 

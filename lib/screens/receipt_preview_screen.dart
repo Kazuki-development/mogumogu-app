@@ -204,9 +204,19 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
           CheckboxListTile(
             value: _selected[index],
             activeColor: const Color(0xFFFF9800),
-            secondary: Text(
-              item.customIcon ?? '📦',
-              style: const TextStyle(fontSize: 28),
+            secondary: GestureDetector(
+              onTap: () => _showIconPicker(index),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item.customIcon ?? '📦',
+                  style: const TextStyle(fontSize: 28),
+                ),
+              ),
             ),
             title: TextField(
               controller: TextEditingController(text: item.name)..selection = TextSelection.fromPosition(TextPosition(offset: item.name.length)),
@@ -339,5 +349,104 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
       case FoodCategory.pantry: return '常温・調味料';
       case FoodCategory.other: return 'その他';
     }
+  }
+
+  void _showIconPicker(int index) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'アイコンを選択',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    children: FoodIconDetector.categorizedIcons.entries.map((entry) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text(
+                              entry.key,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: entry.value.map((icon) {
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _candidates[index] = _candidates[index].copyWith(customIcon: icon);
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                  child: Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: _candidates[index].customIcon == icon
+                                          ? Colors.orange.withValues(alpha: 0.2)
+                                          : Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: _candidates[index].customIcon == icon
+                                          ? Border.all(color: Colors.orange, width: 2)
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(icon, style: const TextStyle(fontSize: 24)),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

@@ -14,6 +14,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
   await NotificationHelper().init();
+  // Ensure exact alarm permission is granted for scheduled notifications
+  await NotificationHelper().ensureExactAlarmPermission();
   
   runApp(const MyApp());
 }

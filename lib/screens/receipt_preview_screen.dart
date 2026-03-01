@@ -19,12 +19,21 @@ class ReceiptPreviewScreen extends StatefulWidget {
 class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
   late List<FoodItem> _candidates;
   late List<bool> _selected;
+  late List<TextEditingController> _nameControllers;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _parseCandidates();
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _nameControllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   void _parseCandidates() {
@@ -48,6 +57,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
     }).toList();
 
     _selected = List.generate(_candidates.length, (index) => true);
+    _nameControllers = _candidates.map((item) => TextEditingController(text: item.name)).toList();
   }
 
   FoodCategory _guessCategoryFromIcon(String icon) {
@@ -219,7 +229,7 @@ class _ReceiptPreviewScreenState extends State<ReceiptPreviewScreen> {
               ),
             ),
             title: TextField(
-              controller: TextEditingController(text: item.name)..selection = TextSelection.fromPosition(TextPosition(offset: item.name.length)),
+              controller: _nameControllers[index],
               maxLength: 50,
               style: const TextStyle(fontWeight: FontWeight.bold),
               decoration: const InputDecoration(

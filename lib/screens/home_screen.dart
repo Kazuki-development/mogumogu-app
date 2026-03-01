@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 isSelectionMode: _isSelectionMode,
                 isSelected: isSelected,
                 onSelected: (bool? value) {
-                  _toggleSelection(item.id!);
+                  if (item.id != null) _toggleSelection(item.id!);
                 },
                 onDelete: () {
                   showDialog(
@@ -328,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           TextButton(
                             child: const Text('削除', style: TextStyle(color: Colors.red)),
                             onPressed: () {
-                              viewModel.deleteItem(item.id!);
+                              if (item.id != null) viewModel.deleteItem(item.id!);
                               Navigator.of(context).pop();
                             },
                           ),
